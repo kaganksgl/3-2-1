@@ -4,6 +4,8 @@
   // association football club, national football team, association football team,
   // men's association football team (used by e.g. FC Barcelona, Chelsea), women's association football team
   const CLUB_FILTER = 'haswbstatement:P31=Q476028|P31=Q6979593|P31=Q15944511|P31=Q103229495|P31=Q28140340';
+  // the above plus sports club, multisports club
+  const TEAM_TYPES = 'wd:Q476028 wd:Q6979593 wd:Q15944511 wd:Q103229495 wd:Q28140340 wd:Q847017 wd:Q13580678';
 
   const state = { a: null, b: null };
   const memo = new Map();
@@ -95,10 +97,48 @@
 
   // ---------- club search ----------
   async function searchClubs(q, signal) {
-    const key = `c:${lang}:${q.toLowerCase()}`;
+    const key = `c3:${lang}:${q.toLowerCase()}`;
     const hit = cacheGet(key);
     if (hit) return hit;
 
+    // 1) Wikidata's own autocomplete: ranks popular clubs first and knows aliases (PSG, Man Utd, Spurs)
+    let list = [];
+    try { list = await autocompleteClubs(q, signal); } catch (err) { if (err.name === 'AbortError') throw err; }
+
+    // 2) nothing found (e.g. a club buried under cities, people…): fall back to type-filtered full-text search
+    if (!list.length) {
+      const seen = new Set(list.map((c) => c.id));
+      const more = await fulltextClubs(q, signal).catch((err) => { if (err.name === 'AbortError') throw err; return []; });
+      list = list.concat(more.filter((c) => !seen.has(c.id)));
+    }
+    list = list.slice(0, 8);
+    cacheSet(key, list);
+    return list;
+  }
+
+  async function autocompleteClubs(q, signal) {
+    const s = new URLSearchParams({
+      action: 'wbsearchentities', search: q, language: lang, uselang: lang,
+      type: 'item', limit: '50', format: 'json', origin: '*',
+    });
+    const hits = (await getJSON(`${API}?${s}`, signal)).search || [];
+    if (!hits.length) return [];
+
+    // keep only football clubs/teams that have players linked to them
+    const values = hits.map((h) => 'wd:' + h.id).join(' ');
+    const sparql = `SELECT DISTINCT ?c WHERE { VALUES ?c { ${values} }
+ ?c wdt:P31 ?t . VALUES ?t { ${TEAM_TYPES} }
+ FILTER EXISTS { ?p wdt:P54 ?c } }`;
+    const res = await getJSON(`${SPARQL}?format=json&query=${encodeURIComponent(sparql)}`, signal);
+    const ok = new Set(res.results.bindings.map((b) => b.c.value.split('/').pop()));
+    return hits.filter((h) => ok.has(h.id)).map((h) => ({
+      id: h.id,
+      label: h.display?.label?.value || h.label,
+      desc: h.display?.description?.value || h.description || '',
+    }));
+  }
+
+  async function fulltextClubs(q, signal) {
     const term = q.trim().split(/\s+/).map((w) => w + '*').join(' ');
     const s = new URLSearchParams({
       action: 'query', list: 'search', srlimit: '8', srprop: '', format: 'json', origin: '*',
@@ -106,23 +146,17 @@
     });
     const data = await getJSON(`${API}?${s}`, signal);
     const ids = (data.query?.search || []).map((r) => r.title);
-    if (!ids.length) return cacheSet(key, []), [];
+    if (!ids.length) return [];
 
     const e = new URLSearchParams({
       action: 'wbgetentities', ids: ids.join('|'), props: 'labels|descriptions',
       languages: 'tr|en', format: 'json', origin: '*',
     });
     const ents = (await getJSON(`${API}?${e}`, signal)).entities || {};
-    const list = ids.map((id) => {
+    return ids.map((id) => {
       const x = ents[id] || {};
-      return {
-        id,
-        label: pick(x.labels),
-        desc: pick(x.descriptions) || '',
-      };
+      return { id, label: pick(x.labels), desc: pick(x.descriptions) || '' };
     }).filter((c) => c.label);
-    cacheSet(key, list);
-    return list;
   }
 
   // ---------- autocomplete ----------
