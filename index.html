@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3-2-1 Ortak Oyuncu</title>
+  <meta name="description" content="İki futbol kulübü seç, her iki takımda da oynamış oyuncuları anında gör. Pick two football clubs and see every player who played for both.">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preconnect" href="https://www.wikidata.org" crossorigin>
+  <link rel="preconnect" href="https://query.wikidata.org" crossorigin>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="tr">TR</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+
+    <header>
+      <h1 data-i18n="title">3-2-1 Ortak Oyuncu</h1>
+      <p class="sub" data-i18n="sub">İki kulüp seç, ikisinde de oynamış oyuncuları gör.</p>
+    </header>
+
+    <form id="form" autocomplete="off" onsubmit="return false">
+      <div class="field" data-side="a">
+        <label for="club-a" data-i18n="club1">1. Kulüp</label>
+        <input id="club-a" type="search" data-i18n-ph="ph1" placeholder="örn. Galatasaray" spellcheck="false" enterkeyhint="search">
+        <ul class="suggest" role="listbox" hidden></ul>
+      </div>
+      <button type="button" id="swap" class="swap" data-i18n-title="swap" aria-label="Kulüpleri değiştir" title="Değiştir">⇅</button>
+      <div class="field" data-side="b">
+        <label for="club-b" data-i18n="club2">2. Kulüp</label>
+        <input id="club-b" type="search" data-i18n-ph="ph2" placeholder="örn. Fenerbahçe" spellcheck="false" enterkeyhint="search">
+        <ul class="suggest" role="listbox" hidden></ul>
+      </div>
+    </form>
+
+    <section id="status" class="status" aria-live="polite"></section>
+    <ul id="results" class="results"></ul>
+
+    <footer data-i18n-html="footer">Veriler <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>'dan canlı olarak çekilir; eksik olabilir.</footer>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>
