@@ -1,8 +1,9 @@
 (() => {
   const API = 'https://www.wikidata.org/w/api.php';
   const SPARQL = 'https://query.wikidata.org/sparql';
-  // association football club, national football team, association football team
-  const CLUB_FILTER = 'haswbstatement:P31=Q476028|P31=Q6979593|P31=Q15944511';
+  // association football club, national football team, association football team,
+  // men's association football team (used by e.g. FC Barcelona, Chelsea), women's association football team
+  const CLUB_FILTER = 'haswbstatement:P31=Q476028|P31=Q6979593|P31=Q15944511|P31=Q103229495|P31=Q28140340';
 
   const state = { a: null, b: null };
   const memo = new Map();
